@@ -23,11 +23,13 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Instalar Capacitor y envolver la PWA
+      - name: Preparar carpeta web e instalar Capacitor
         run: |
+          mkdir -p www
+          cp -r index.html manifest.json service-worker.js privacidad.html *.png www/ 2>/dev/null || true
           npm init -y
           npm install @capacitor/core @capacitor/cli @capacitor/android
-          npx cap init "Dosis Pedia" com.dosispedia.app --web-dir .
+          npx cap init "Dosis Pedia" com.dosispedia.app --web-dir www
           npx cap add android
 
       - name: Copiar iconos al proyecto Android
