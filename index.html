@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dosis Pedia — calculadora de dosis pediátricas</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2F6F62">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dosis Pedia">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F3F5F1;
+    --surface:#FFFFFF;
+    --surface-2:#ECF1EC;
+    --ink:#1E2A24;
+    --ink-soft:#54635C;
+    --line:#DBE3DC;
+    --accent:#2F6F62;
+    --accent-ink:#F3F5F1;
+    --accent-2:#C15A73;
+    --warn-bg:#FBF0DE;
+    --warn-ink:#6B4A16;
+    --font-display:'Fraunces', Georgia, 'Times New Roman', serif;
+    --font-body:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  :root:not([data-theme="light"]){
+    @media (prefers-color-scheme: dark){
+      --bg:#151C18;
+      --surface:#1D2620;
+      --surface-2:#242F28;
+      --ink:#EAEFE9;
+      --ink-soft:#A7B3AC;
+      --line:#33413A;
+      --accent:#6FBFA9;
+      --accent-ink:#12201A;
+      --accent-2:#E893A8;
+      --warn-bg:#3A2E14;
+      --warn-ink:#F0D28E;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#151C18;
+    --surface:#1D2620;
+    --surface-2:#242F28;
+    --ink:#EAEFE9;
+    --ink-soft:#A7B3AC;
+    --line:#33413A;
+    --accent:#6FBFA9;
+    --accent-ink:#12201A;
+    --accent-2:#E893A8;
+    --warn-bg:#3A2E14;
+    --warn-ink:#F0D28E;
+  }
+  html{scroll-padding-top:env(safe-area-inset-top,0px); height:100%;}
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100%;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--font-body);
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;}
+
+  .app{max-width:640px; margin:0 auto; padding:0 16px 64px;}
+
+  header.top{
+    position:sticky; top:0; z-index:20;
+    padding-top:calc(env(safe-area-inset-top,0px) + 14px);
+    background:linear-gradient(var(--bg) 78%, transparent);
+    padding-bottom:10px;
+  }
+  .brand{
+    display:flex; align-items:baseline; gap:10px; margin-bottom:12px;
+  }
+  .brand h1{
+    font-family:var(--font-display);
+    font-weight:600;
+    font-size:1.5rem;
+    letter-spacing:-0.01em;
+    margin:0;
+  }
+  .brand span.tag{
+    font-size:0.78rem;
+    color:var(--ink-soft);
+  }
+
+  .weight-bar{
+    display:flex; align-items:center; gap:10px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:10px 14px;
+    box-shadow:0 1px 0 rgba(0,0,0,0.02);
+  }
+  .weight-bar label{
+    font-size:0.82rem; color:var(--ink-soft); white-space:nowrap;
+  }
+  .weight-bar input[type="number"]{
+    flex:1;
+    border:none;
+    background:transparent;
+    font-family:var(--font-display);
+    font-size:1.4rem;
+    font-weight:600;
+    color:var(--accent-2);
+    min-width:0;
+    padding:2px 0;
+  }
+  .weight-bar input[type="number"]:focus{outline:none;}
+  .weight-bar .unit{color:var(--ink-soft); font-size:0.9rem;}
+
+  .search-row{
+    margin-top:10px;
+    display:flex; gap:8px;
+  }
+  .search-row input[type="search"]{
+    flex:1;
+    border:1px solid var(--line);
+    background:var(--surface);
+    border-radius:12px;
+    padding:9px 12px;
+    font-family:var(--font-body);
+    font-size:0.92rem;
+    color:var(--ink);
+  }
+  .search-row input[type="search"]::placeholder{color:var(--ink-soft);}
+
+  .cats{
+    display:flex; gap:6px; overflow-x:auto; margin-top:10px;
+    padding-bottom:2px;
+    scrollbar-width:none;
+  }
+  .cats::-webkit-scrollbar{display:none;}
+  .chip{
+    flex:0 0 auto;
+    border:1px solid var(--line);
+    background:var(--surface);
+    color:var(--ink-soft);
+    padding:6px 12px;
+    border-radius:999px;
+    font-size:0.8rem;
+    cursor:pointer;
+    white-space:nowrap;
+    user-select:none;
+  }
+  .chip[data-active="true"]{
+    background:var(--dotcolor, var(--accent));
+    border-color:var(--dotcolor, var(--accent));
+    color:#fff;
+  }
+
+  .disclaimer{
+    margin-top:16px;
+    background:var(--warn-bg);
+    color:var(--warn-ink);
+    border-radius:12px;
+    padding:11px 14px;
+    font-size:0.8rem;
+    line-height:1.4;
+  }
+
+  .list{margin-top:18px; display:flex; flex-direction:column; gap:10px;}
+
+  details.card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:16px;
+    overflow:hidden;
+  }
+  details.card[open]{border-color:var(--dotcolor);}
+  details.card summary{
+    list-style:none;
+    cursor:pointer;
+    padding:14px 16px;
+    display:flex; align-items:center; gap:12px;
+  }
+  details.card summary::-webkit-details-marker{display:none;}
+  .dot{
+    width:10px; height:10px; border-radius:50%;
+    background:var(--dotcolor);
+    flex:0 0 auto;
+  }
+  .card-title{flex:1; min-width:0;}
+  .card-title .name{
+    font-family:var(--font-display);
+    font-weight:600;
+    font-size:1.08rem;
+  }
+  .card-title .cat{
+    font-size:0.76rem;
+    color:var(--ink-soft);
+    margin-top:1px;
+  }
+  .chev{
+    color:var(--ink-soft);
+    transition:transform .18s ease;
+    flex:0 0 auto;
+  }
+  details.card[open] .chev{transform:rotate(180deg);}
+
+  .card-body{
+    padding:0 16px 18px;
+  }
+  .desc{
+    font-size:0.86rem;
+    color:var(--ink-soft);
+    line-height:1.5;
+    margin:0 0 14px;
+  }
+
+  .pres{
+    border-top:1px solid var(--line);
+    padding:12px 0;
+  }
+  .pres:first-child{border-top:none; padding-top:0;}
+  .pres-label{
+    font-size:0.88rem;
+    font-weight:600;
+    margin-bottom:4px;
+  }
+  .pres-formula{
+    font-size:0.78rem;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+  }
+  .pres-result{
+    display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;
+  }
+  .pres-result .value{
+    font-family:var(--font-display);
+    font-size:1.35rem;
+    font-weight:600;
+    color:var(--dotcolor);
+  }
+  .pres-result .freq{
+    font-size:0.82rem;
+    color:var(--ink-soft);
+  }
+  .pres-note{
+    font-size:0.78rem;
+    color:var(--ink-soft);
+    margin-top:4px;
+  }
+  .pres-max.exceeded .value{color:var(--accent-2);}
+  .pres-max.exceeded .maxflag{
+    display:inline-block; margin-top:4px; font-size:0.76rem; color:var(--accent-2);
+  }
+
+  .rx-toggle{
+    margin-top:14px;
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--surface-2);
+    border:none;
+    color:var(--ink);
+    padding:8px 13px;
+    border-radius:10px;
+    font-size:0.82rem;
+    font-family:var(--font-body);
+    cursor:pointer;
+  }
+  .rx-toggle:hover{background:var(--line);}
+
+  .rx-box{
+    display:none;
+    margin-top:10px;
+    background:var(--surface-2);
+    border-radius:12px;
+    padding:12px 14px;
+  }
+  .rx-box[data-open="true"]{display:block;}
+  .rx-box textarea{
+    width:100%;
+    border:none;
+    background:transparent;
+    font-family:var(--font-body);
+    font-size:0.86rem;
+    color:var(--ink);
+    line-height:1.55;
+    resize:vertical;
+    min-height:118px;
+    padding:0;
+  }
+  .rx-actions{
+    display:flex; justify-content:flex-end; margin-top:6px;
+  }
+  .rx-actions button{
+    border:1px solid var(--line);
+    background:var(--surface);
+    color:var(--ink);
+    padding:6px 12px;
+    border-radius:9px;
+    font-size:0.78rem;
+    cursor:pointer;
+  }
+  .rx-actions button:active{transform:translateY(1px);}
+
+  .empty{
+    text-align:center;
+    color:var(--ink-soft);
+    padding:40px 12px;
+    font-size:0.9rem;
+  }
+
+  footer.foot{
+    margin-top:30px;
+    text-align:center;
+    font-size:0.74rem;
+    color:var(--ink-soft);
+    line-height:1.6;
+  }
+
+  @media (min-width:640px){
+    .app{padding-left:24px; padding-right:24px;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <div class="brand">
+      <h1>Dosis Pedia</h1>
+      <span class="tag">calculadora de dosis pediátricas</span>
+    </div>
+
+    <div class="weight-bar">
+      <label for="peso">Peso del paciente</label>
+      <input id="peso" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0.0">
+      <span class="unit">kg</span>
+    </div>
+
+    <div class="search-row">
+      <input id="buscar" type="search" placeholder="Buscar medicamento…">
+    </div>
+
+    <div class="cats" id="cats"></div>
+  </header>
+
+  <p class="disclaimer">Herramienta de apoyo para el cálculo rápido, armada a partir de una guía de dosis propia. No reemplaza el criterio clínico ni la verificación en bibliografía o vademécum actualizado antes de prescribir — especialmente en pacientes con comorbilidades, alergias o fuera de los rangos habituales.</p>
+
+  <div class="list" id="list"></div>
+  <div class="empty" id="empty" style="display:none;">No se encontró ningún medicamento con ese nombre.</div>
+
+  <footer class="foot">Dosis Pedia · uso educativo y de apoyo en la práctica clínica diaria.<br>Verificá siempre peso, alergias y contraindicaciones antes de indicar.</footer>
+</div>
+
+<script>
+const CATS = [
+  {id:'analgesicos', name:'Analgésicos y antitérmicos', color:'#4C6FA3'},
+  {id:'antihistaminicos', name:'Antihistamínicos', color:'#7B5EA7'},
+  {id:'antibioticos', name:'Antibióticos', color:'#2F6F62'},
+  {id:'antiparasitarios', name:'Antiparasitarios', color:'#B7862C'},
+  {id:'corticoides', name:'Corticoides', color:'#C15A73'},
+  {id:'respiratorio', name:'Respiratorio', color:'#3C8F82'},
+  {id:'digestivo', name:'Digestivo y antiemético', color:'#A9642F'},
+  {id:'sedacion', name:'Sedación y emergencia', color:'#A63D40'},
+  {id:'dermatologico', name:'Dermatológico y tópico', color:'#5E7A3A'},
+];
+const catColor = id => (CATS.find(c=>c.id===id)||{}).color || '#2F6F62';
+const catName = id => (CATS.find(c=>c.id===id)||{}).name || id;
+
+// r: función de redondeo por defecto
+const r2 = n => Math.round(n*100)/100;
+
+const DRUGS = [
+// ---------- ANALGÉSICOS Y ANTITÉRMICOS ----------
+{
+  id:'paracetamol', name:'Paracetamol', cat:'analgesicos',
+  desc:'Analgésico y antitérmico de primera línea en pediatría. Vía oral, cada 8 horas.',
+  presentations:[
+    {label:'Gotas 10% (20 mL)', formulaText:'2 gotas × kg', unit:'gotas', freq:'cada 8 horas', calc:w=>r2(2*w)},
+    {label:'Jarabe 2,4%', formulaText:'Peso (kg) × 0,5 = mL', unit:'mL', freq:'cada 8 horas', calc:w=>r2(w*0.5)},
+    {label:'Jarabe 3,2%', formulaText:'Peso (kg) / 2 = mL', unit:'mL', freq:'cada 8 horas', calc:w=>r2(w/2)},
+  ]
+},
+{
+  id:'dipirona', name:'Dipirona (metamizol)', cat:'analgesicos',
+  desc:'Analgésico/antitérmico de rescate. Vigilar reacciones alérgicas e hipotensión con la vía IM/IV.',
+  presentations:[
+    {label:'IM 500 mg/mL', formulaText:'Peso × 0,03 = mL', unit:'mL', freq:'cada 8 horas', route:'IM', calc:w=>r2(w*0.03)},
+    {label:'Jarabe 250 mg/5 mL', formulaText:'Peso × 0,3 = mL', unit:'mL', freq:'cada 8 horas', calc:w=>r2(w*0.3)},
+    {label:'Jarabe 500 mg/5 mL', formulaText:'Peso × 0,15 = mL', unit:'mL', freq:'cada 8 horas', calc:w=>r2(w*0.15)},
+  ]
+},
+{
+  id:'ibuprofeno', name:'Ibuprofeno', cat:'analgesicos',
+  desc:'AINE para dolor/fiebre en mayores de 6 meses. Evitar en deshidratación o sospecha de dengue.',
+  presentations:[
+    {label:'Jarabe 2%', formulaText:'Peso (kg) / 2 = mL', unit:'mL', freq:'cada 8 horas', calc:w=>r2(w/2)},
+    {label:'Jarabe 4%', formulaText:'Peso (kg) / 4 = mL', unit:'mL', freq:'cada 8 horas', calc:w=>r2(w/4)},
+  ]
+},
+{
+  id:'diclofenac', name:'Diclofenac', cat:'analgesicos',
+  desc:'AINE de uso puntual en dolor moderado. La presentación IM suele reservarse para mayores de 1 año.',
+  presentations:[
+    {label:'IM 75 mg/3 mL', formulaText:'Peso × 0,04 = mL', unit:'mL', freq:'dosis única / según indicación', route:'IM', calc:w=>r2(w*0.04)},
+    {label:'Suspensión 25 mg/5 mL', formulaText:'Peso / 5 = mL', unit:'mL', freq:'cada 8 horas', calc:w=>r2(w/5)},
+    {label:'Gotas 15 mg/mL', formulaText:'Peso × 1,3 = gotas', unit:'gotas', freq:'cada 8 horas', calc:w=>r2(w*1.3)},
+  ]
+},
+
+// ---------- ANTIHISTAMÍNICOS ----------
+{
+  id:'difenhidramina', name:'Difenhidramina', cat:'antihistaminicos',
+  desc:'Antihistamínico sedante, útil en reacciones alérgicas agudas o prurito.',
+  presentations:[
+    {label:'Jarabe 12,5 mg/5 mL', formulaText:'Peso / 2,5 = mL', unit:'mL', freq:'ver frecuencia según indicación', calc:w=>r2(w/2.5)},
+    {label:'VO comprimido 50 mg', formulaText:'1 comprimido', unit:'comp.', freq:'cada 8–12 horas', calc:()=>1},
+  ]
+},
+{
+  id:'loratadina', name:'Loratadina', cat:'antihistaminicos',
+  desc:'Antihistamínico no sedante para rinitis alérgica y urticaria, dosis única diaria.',
+  presentations:[
+    {label:'Jarabe 100 mg/100 mL o comprimidos (< 30 kg)', formulaText:'5 mL o 5 mg', unit:'mL/mg', freq:'cada 24 horas', calc:()=>5, showIf:w=>w>0 && w<30},
+    {label:'Jarabe 100 mg/100 mL o comprimidos (> 30 kg)', formulaText:'10 mL o 10 mg', unit:'mL/mg', freq:'cada 24 horas', calc:()=>10, showIf:w=>w>=30},
+  ]
+},
+
+// ---------- ANTIBIÓTICOS ----------
+{
+  id:'amoxicilina', name:'Amoxicilina', cat:'antibioticos',
+  desc:'Betalactámico de primera línea para infecciones respiratorias altas y otitis media aguda.',
+  presentations:[
+    {label:'250 mg/5 mL — rinofaringitis', formulaText:'Peso / 3 = mL', unit:'mL', freq:'cada 8 horas', calc:w=>r2(w/3)},
+    {label:'250 mg/5 mL — OMA / NAC', formulaText:'Peso / 2 = mL', unit:'mL', freq:'cada 12 horas', calc:w=>r2(w/2)},
+    {label:'500 mg/5 mL', formulaText:'Peso / 4 = mL', unit:'mL', freq:'cada 12 horas', calc:w=>r2(w/4)},
+    {label:'Comprimidos 500 mg', formulaText:'cada 12 h, 5–7 días', unit:'comp.', freq:'cada 12 horas · 5–7 días · 14–21 comprimidos', calc:()=>1},
+  ]
+},
+{
+  id:'amoxiclavu', name:'Amoxicilina-clavulánico', cat:'antibioticos',
+  desc:'Ampliación de espectro frente a amoxicilina para infecciones resistentes o por gérmenes productores de betalactamasas.',
+  presentations:[
+    {label:'250-62,5 mg/5 mL', formulaText:'Peso / 2,5 = mL', unit:'mL', freq:'cada 12 horas · 5–7 días', calc:w=>r2(w/2.5)},
+    {label:'400-57 mg/5 mL', formulaText:'Peso / 4 = mL', unit:'mL', freq:'cada 12 horas · 5–7 días', calc:w=>r2(w/4)},
+    {label:'Comprimidos 500/125 mg u 875/125 mg', formulaText:'cada 12 h, 5–7 días', unit:'comp.', freq:'cada 12 horas · 5–7 días · 14–21 comprimidos', calc:()=>1},
+  ]
+},
+{
+  id:'tobramicina', name:'Tobramicina oftálmica', cat:'antibioticos',
+  desc:'Antibiótico tópico oftálmico para conjuntivitis bacteriana. Uso local, no requiere cálculo por peso.',
+  presentations:[
+    {label:'Gotas oftálmicas 0,3%', formulaText:'—', unit:'', freq:'1–2 gotas cada 4–6 horas en el ojo afectado · 5–7 días', calc:null},
+    {label:'Ungüento oftálmico 0,3%', formulaText:'—', unit:'', freq:'2–3 veces por día', calc:null},
+  ]
+},
+{
+  id:'azitromicina', name:'Azitromicina', cat:'antibioticos',
+  desc:'Macrólido de pauta corta, alternativa en alérgicos a betalactámicos o en infecciones atípicas.',
+  presentations:[
+    {label:'Jarabe 200 mg/5 mL', formulaText:'Peso / 4 = mL', unit:'mL', freq:'cada 24 horas · 3 días', calc:w=>r2(w/4)},
+  ]
+},
+{
+  id:'ceftriaxona', name:'Ceftriaxona', cat:'antibioticos',
+  desc:'Cefalosporina de 3ª generación de uso IM/IV en infecciones moderadas a graves. Diluir según vía.',
+  presentations:[
+    {label:'1 g + 3 mL lidocaína + 2 mL agua destilada', formulaText:'Peso × 0,2 = mL', unit:'mL', freq:'cada 24 horas', route:'IM', calc:w=>r2(w*0.2)},
+    {label:'1 g + 10 mL SF', formulaText:'Peso × 0,5 = mL', unit:'mL', freq:'cada 24 horas', route:'IV', calc:w=>r2(w*0.5)},
+  ]
+},
+{
+  id:'ampisulbactam', name:'Ampicilina-sulbactam', cat:'antibioticos',
+  desc:'Betalactámico de amplio espectro para infecciones moderadas a graves por vía intravenosa.',
+  presentations:[
+    {label:'1,5 g + 3 mL agua destilada', formulaText:'Peso × 0,13 = mL, luego + 100 mL en goteo a 33 gotas/min en 1 hora', unit:'mL', freq:'cada 6 horas', route:'IV', calc:w=>r2(w*0.13)},
+  ]
+},
+{
+  id:'cefalexina', name:'Cefalexina', cat:'antibioticos',
+  desc:'Cefalosporina de 1ª generación para infecciones de piel y partes blandas o vías urinarias.',
+  presentations:[
+    {label:'Jarabe 250 mg/5 mL', formulaText:'Peso × 0,15 = mL', unit:'mL', freq:'cada 8 horas', calc:w=>r2(w*0.15)},
+    {label:'Jarabe 500 mg/5 mL', formulaText:'Peso × 0,08 = mL', unit:'mL', freq:'cada 8 horas', calc:w=>r2(w*0.08)},
+    {label:'Comprimidos 250–500 mg', formulaText:'cada 8 h, 5 días', unit:'comp.', freq:'cada 8 horas · 5 días · 16 comprimidos', calc:()=>1},
+  ]
+},
+{
+  id:'clindamicina', name:'Clindamicina', cat:'antibioticos',
+  desc:'Cubre gérmenes anaerobios y Gram positivos; alternativa en alergia a betalactámicos.',
+  presentations:[
+    {label:'Suspensión 75 mg/5 mL', formulaText:'Peso / 1,5 = mL', unit:'mL', freq:'cada 8 horas', calc:w=>r2(w/1.5)},
+    {label:'Cápsulas 150–300 mg', formulaText:'cada 8 h, 5 días', unit:'cáps.', freq:'cada 8 horas · 5 días · 16 cápsulas', calc:()=>1},
+  ]
+},
+{
+  id:'tms', name:'TMS (trimetoprima-sulfametoxazol)', cat:'antibioticos',
+  desc:'Útil en infección urinaria y profilaxis. Evitar en menores de 2 meses.',
+  presentations:[
+    {label:'Jarabe 200-40 mg/5 mL', formulaText:'Peso / 2 = mL', unit:'mL', freq:'cada 12 horas', calc:w=>r2(w/2)},
+    {label:'Comprimidos 400/80 u 800/160 mg', formulaText:'cada 12 h, 5 días', unit:'comp.', freq:'cada 12 horas · 5 días · 10 comprimidos', calc:()=>1},
+  ]
+},
+
+// ---------- ANTIPARASITARIOS ----------
+{
+  id:'mebendazol', name:'Mebendazol', cat:'antiparasitarios',
+  desc:'Antiparasitario de amplio espectro para geohelmintos. No requiere ajuste por peso a partir de los 2 años.',
+  presentations:[
+    {label:'Suspensión 100 mg/5 mL', formulaText:'5 mL cada 12 h · 3 días', unit:'mL', freq:'cada 12 horas · 3 días', calc:()=>5},
+    {label:'Comprimidos 100 mg', formulaText:'cada 12 h · 3 días', unit:'comp.', freq:'cada 12 horas · 3 días', calc:()=>1},
+  ]
+},
+{
+  id:'albendazol', name:'Albendazol', cat:'antiparasitarios',
+  desc:'Antiparasitario de dosis única, ajustado por edad más que por peso.',
+  presentations:[
+    {label:'Suspensión 400 mg/20 mL (> 2 años)', formulaText:'400 mg o 20 mL, dosis única', unit:'mL', freq:'dosis única', calc:()=>20, showIf:w=>true},
+    {label:'Suspensión 400 mg/20 mL (1–2 años)', formulaText:'200 mg o 10 mL, dosis única', unit:'mL', freq:'dosis única', calc:()=>10, showIf:w=>true},
+  ]
+},
+{
+  id:'ivermectina', name:'Ivermectina', cat:'antiparasitarios',
+  desc:'De elección en escabiosis y estrongiloidiasis. Repetir a los 7–14 días.',
+  presentations:[
+    {label:'VO', formulaText:'200 mcg/kg = Peso × 0,2 = mg', unit:'mg', freq:'dosis única, repetir a los 7–14 días', calc:w=>r2(w*0.2)},
+  ]
+},
+{
+  id:'permetrina5', name:'Permetrina 5% (escabiosis)', cat:'antiparasitarios',
+  desc:'Tratamiento tópico de la sarna. Aplicar a todo el núcleo conviviente.',
+  presentations:[
+    {label:'Crema 5%', formulaText:'—', unit:'', freq:'aplicar por la noche cubriendo todo el cuerpo, dejar actuar 8–12 horas y bañarse; repetir a los 7 días', calc:null},
+  ]
+},
+{
+  id:'permetrina1', name:'Permetrina 1% (pediculosis)', cat:'antiparasitarios',
+  desc:'Tratamiento tópico de la pediculosis capitis.',
+  presentations:[
+    {label:'Loción/crema 1%', formulaText:'—', unit:'', freq:'aplicar en cabello húmedo, dejar 10 minutos, enjuagar y pasar peine fino; repetir a los 7–10 días', calc:null},
+  ]
+},
+
+// ---------- CORTICOIDES ----------
+{
+  id:'dexametasona', name:'Dexametasona', cat:'corticoides',
+  desc:'Corticoide de acción prolongada, usado en crup, edema cerebral y reacciones alérgicas graves.',
+  presentations:[
+    {label:'8 mg/2 mL', formulaText:'Peso / 6,5 = mL', unit:'mL', freq:'según indicación', route:'IV/IM', calc:w=>r2(w/6.5)},
+    {label:'4 mg/2 mL', formulaText:'Peso / 4 = mL', unit:'mL', freq:'según indicación', route:'IV/IM', calc:w=>r2(w/4)},
+  ]
+},
+{
+  id:'betametasona-gotas', name:'Betametasona (gotas / IV-IM)', cat:'corticoides',
+  desc:'Corticoide sistémico. Las gotas orales suelen usarse en crup leve; la forma IV/IM en cuadros más graves.',
+  presentations:[
+    {label:'Gotas 0,5 mg/1 mL', formulaText:'Peso × 4 = gotas', unit:'gotas', freq:'cada 12–24 horas', calc:w=>r2(w*4)},
+    {label:'IV/IM 4 mg/1 mL – 8 mg/2 mL (0,1 mg/kg)', formulaText:'Peso / 40 = mL', unit:'mL', route:'IV/IM', freq:'según indicación', calc:w=>r2(w/40)},
+    {label:'IV/IM 4 mg/1 mL – 8 mg/2 mL (0,2 mg/kg)', formulaText:'Peso / 20 = mL', unit:'mL', route:'IV/IM', freq:'según indicación', calc:w=>r2(w/20)},
+  ]
+},
+{
+  id:'betametasona-crema', name:'Betametasona crema 0,05%', cat:'corticoides',
+  desc:'Corticoide tópico de mediana potencia para dermatitis localizadas.',
+  presentations:[
+    {label:'Crema 0,05%', formulaText:'—', unit:'', freq:'1–2 veces al día en la zona afectada', calc:null},
+  ]
+},
+{
+  id:'prednisona', name:'Prednisona', cat:'corticoides',
+  desc:'Corticoide oral para asma, broncoespasmo y reacciones alérgicas moderadas.',
+  presentations:[
+    {label:'Jarabe 5–20 mg/5 mL', formulaText:'1–2 mg/kg/día = Peso × 1 a Peso × 2 = mg/día', unit:'mg/día', freq:'cada 12–24 horas', calc:w=>`${r2(w*1)}–${r2(w*2)}`},
+    {label:'Comprimidos 5–20 mg', formulaText:'1 comprimido', unit:'comp.', freq:'cada 12–24 horas', calc:()=>1},
+  ]
+},
+{
+  id:'hidrocortisona', name:'Hidrocortisona', cat:'corticoides',
+  desc:'Corticoide IV/IM de acción rápida para crisis asmática grave o insuficiencia suprarrenal aguda.',
+  presentations:[
+    {label:'Ampolla 100 mg o 500 mg', formulaText:'Peso / 12,5 = mL', unit:'mL', route:'IV/IM', freq:'según indicación', calc:w=>r2(w/12.5)},
+  ]
+},
+
+// ---------- RESPIRATORIO ----------
+{
+  id:'salbutamol', name:'Salbutamol', cat:'respiratorio',
+  desc:'Beta-2 agonista de acción corta, broncodilatador de primera línea en crisis asmática.',
+  presentations:[
+    {label:'Aerosol 100 mcg/puff', formulaText:'2–4 puff cada 20\' durante 1 hora', unit:'puff', freq:'2–4 puff / 20 min × 1 hora', calc:null},
+    {label:'NBZ 5 mg/mL (< 20 kg)', formulaText:'10 gotas en 3 mL SF', unit:'gotas', freq:'según indicación', calc:()=>10, showIf:w=>w>0 && w<20},
+    {label:'NBZ 5 mg/mL (> 20 kg)', formulaText:'20 gotas en 3 mL SF', unit:'gotas', freq:'según indicación', calc:()=>20, showIf:w=>w>=20},
+  ]
+},
+{
+  id:'ipratropio', name:'Ipratropio', cat:'respiratorio',
+  desc:'Anticolinérgico inhalado, se asocia al salbutamol en crisis asmática moderada-grave.',
+  presentations:[
+    {label:'Aerosol 20 mcg/puff', formulaText:'2–4 puff cada 20\' durante 1 hora', unit:'puff', freq:'2–4 puff / 20 min × 1 hora', calc:null},
+    {label:'NBZ 250 mcg/mL (< 20 kg)', formulaText:'20 gotas en 3 mL SF', unit:'gotas', freq:'según indicación', calc:()=>20, showIf:w=>w>0 && w<20},
+    {label:'NBZ 250 mcg/mL (> 20 kg)', formulaText:'40 gotas en 3 mL SF', unit:'gotas', freq:'según indicación', calc:()=>40, showIf:w=>w>=20},
+  ]
+},
+{
+  id:'budesonide', name:'Budesonide', cat:'respiratorio',
+  desc:'Corticoide inhalado de mantenimiento asmático; también en crup por vía nebulizada.',
+  presentations:[
+    {label:'Aerosol 100–200 mcg/puff', formulaText:'1–2 puff cada 12 horas', unit:'puff', freq:'cada 12 horas', calc:null},
+    {label:'NBZ 0,1% — crup', formulaText:'20 gotas cada 12 horas, dosis única en crup', unit:'gotas', freq:'cada 12 horas', calc:()=>20},
+  ]
+},
+{
+  id:'fluticasona', name:'Fluticasona', cat:'respiratorio',
+  desc:'Corticoide inhalado de mantenimiento asmático.',
+  presentations:[
+    {label:'Aerosol 50–125–250 mcg/puff', formulaText:'1 puff cada 12 horas', unit:'puff', freq:'cada 12 horas', calc:null},
+  ]
+},
+
+// ---------- DIGESTIVO Y ANTIEMÉTICO ----------
+{
+  id:'ondansetron', name:'Ondansetrón', cat:'digestivo',
+  desc:'Antiemético de elección en vómitos agudos, incluida gastroenteritis. La fórmula IV/IM de la guía original no especifica el valor del divisor; confirmar contra protocolo local antes de indicar.',
+  presentations:[
+    {label:'Jarabe 4 mg/5 mL', formulaText:'Peso / 5 = mL', unit:'mL', freq:'según indicación', calc:w=>r2(w/5)},
+    {label:'IM/IV', formulaText:'Peso / m = mL (la guía original no aclara el valor de "m"); la dosis habitual es 0,1–0,15 mg/kg — confirmar antes de indicar', unit:'', freq:'según indicación', calc:null},
+  ]
+},
+{
+  id:'metoclopramida', name:'Metoclopramida', cat:'digestivo',
+  desc:'Procinético/antiemético. Usar con cautela en menores de 1 año por riesgo de efectos extrapiramidales.',
+  presentations:[
+    {label:'IM/IV 10 mg/10 mL', formulaText:'Peso / 50 = mL', unit:'mL', route:'IM/IV', freq:'según indicación', calc:w=>r2(w/50)},
+    {label:'Gotas 4 mg/1 mL', formulaText:'Peso / 2 = gotas', unit:'gotas', freq:'cada 8 horas', calc:w=>r2(w/2)},
+    {label:'Comprimidos 10 mg (> 50 kg)', formulaText:'1 comprimido', unit:'comp.', freq:'cada 6–8 horas', calc:()=>1, showIf:w=>w>=50},
+  ]
+},
+{
+  id:'sulfato-magnesio', name:'Sulfato de magnesio', cat:'digestivo',
+  desc:'Uso en crisis asmática grave refractaria. Infundir lento y monitorizar; dosis máxima 2 g.',
+  presentations:[
+    {label:'Ampolla 25% (250 mg/mL)', formulaText:'25–50 mg/kg = Peso × 25 a Peso × 50 = mg (máx. 2 g); diluir en 50–100 mL SF y pasar en 30 minutos', unit:'mg', route:'EV', freq:'dosis única', calc:w=>`${r2(w*25)}–${r2(w*50)}`, maxNote:'Dosis máxima: 2000 mg (2 g)', maxCheck:w=>w*50>2000},
+  ]
+},
+
+// ---------- SEDACIÓN Y EMERGENCIA ----------
+{
+  id:'diazepam', name:'Diazepam', cat:'sedacion',
+  desc:'Benzodiacepina para crisis convulsiva aguda o sedación. Administrar IV lento por riesgo de depresión respiratoria.',
+  presentations:[
+    {label:'IM/IV 10 mg/2 mL (0,2–0,3 mg/kg)', formulaText:'Peso / 25 = mL', unit:'mL', route:'IV lento', freq:'dosis única, repetir según respuesta', calc:w=>r2(w/25)},
+    {label:'Comprimidos 5 mg', formulaText:'1 comprimido', unit:'comp.', freq:'cada 8–12 horas', calc:()=>1},
+  ]
+},
+{
+  id:'adrenalina', name:'Adrenalina', cat:'sedacion',
+  desc:'Primera línea en anafilaxia y paro cardiorrespiratorio; también nebulizada en crup grave.',
+  presentations:[
+    {label:'1 mg/mL — anafilaxia', formulaText:'0,1 mL por cada 10 kg (máx. 0,5 mL)', unit:'mL', route:'IM', freq:'repetir cada 5–15 min si es necesario', calc:w=>Math.min(r2(w*0.01),0.5), maxNote:'Dosis máxima: 0,5 mL', maxCheck:w=>w*0.01>0.5},
+    {label:'Crup', formulaText:'—', unit:'', freq:'3–5 mL nebulizados', calc:null},
+    {label:'RCP', formulaText:'0,01 mg/kg = Peso × 0,01 = mg', unit:'mg', route:'IV/IO', freq:'según protocolo de RCP', calc:w=>r2(w*0.01)},
+  ]
+},
+
+// ---------- DERMATOLÓGICO Y TÓPICO ----------
+{
+  id:'acido-fusidico', name:'Ácido fusídico', cat:'dermatologico',
+  desc:'Antibiótico tópico para infecciones cutáneas bacterianas; combinado con betametasona si hay componente inflamatorio.',
+  presentations:[
+    {label:'Crema 2% (+/- betametasona 0,1%)', formulaText:'—', unit:'', freq:'capa fina 2–3 veces al día · 5–7 días', calc:null},
+  ]
+},
+{
+  id:'clotrimazol-ketoconazol', name:'Clotrimazol / ketoconazol', cat:'dermatologico',
+  desc:'Antifúngicos tópicos para micosis cutáneas.',
+  presentations:[
+    {label:'Clotrimazol crema 1%', formulaText:'—', unit:'', freq:'2 veces al día · 2–4 semanas', calc:null},
+    {label:'Ketoconazol crema 2%', formulaText:'—', unit:'', freq:'1–2 veces al día · 2–4 semanas', calc:null},
+  ]
+},
+];
+
+// ---------- Render ----------
+const listEl = document.getElementById('list');
+const emptyEl = document.getElementById('empty');
+const pesoInput = document.getElementById('peso');
+const buscarInput = document.getElementById('buscar');
+const catsEl = document.getElementById('cats');
+
+let activeCat = 'all';
+let searchTerm = '';
+
+function buildCatChips(){
+  const all = document.createElement('div');
+  all.className = 'chip';
+  all.textContent = 'Todos';
+  all.dataset.active = activeCat==='all' ? 'true':'false';
+  all.addEventListener('click', ()=>{activeCat='all'; renderList();});
+  catsEl.appendChild(all);
+  CATS.forEach(c=>{
+    const chip = document.createElement('div');
+    chip.className = 'chip';
+    chip.textContent = c.name;
+    chip.style.setProperty('--dotcolor', c.color);
+    chip.dataset.active = activeCat===c.id ? 'true':'false';
+    chip.addEventListener('click', ()=>{activeCat = (activeCat===c.id? 'all': c.id); renderList();});
+    catsEl.appendChild(chip);
+  });
+}
+
+function fmtVal(v){
+  if(v===null || v===undefined || v==='') return '—';
+  return v;
+}
+
+function buildExample(drug, weight){
+  const pres = drug.presentations.find(p=>p.calc) || drug.presentations[0];
+  const fecha = new Date().toLocaleDateString('es-AR');
+  let dosisLinea;
+  if(pres && pres.calc && weight>0){
+    const val = pres.calc(weight);
+    dosisLinea = `Administrar ${fmtVal(val)} ${pres.unit || ''} ${pres.freq || ''}`.replace(/\s+/g,' ').trim();
+  } else if(pres){
+    dosisLinea = pres.freq || pres.formulaText || '';
+  } else {
+    dosisLinea = '';
+  }
+  const pesoLinea = weight>0 ? `Paciente de ${weight} kg.` : 'Peso del paciente: completar.';
+  return `Rp/\n${drug.name}${pres && pres.label? ' — '+pres.label:''}\n\n${pesoLinea}\nIndico: ${dosisLinea}\n\nFecha: ${fecha}\nFirma y sello`;
+}
+
+function renderList(){
+  buildChipsState();
+  listEl.innerHTML = '';
+  const term = searchTerm.trim().toLowerCase();
+  const filtered = DRUGS.filter(d=>{
+    const matchCat = activeCat==='all' || d.cat===activeCat;
+    const matchTerm = !term || d.name.toLowerCase().includes(term);
+    return matchCat && matchTerm;
+  });
+  emptyEl.style.display = filtered.length? 'none':'block';
+
+  filtered.forEach(drug=>{
+    const color = catColor(drug.cat);
+    const details = document.createElement('details');
+    details.className = 'card';
+    details.style.setProperty('--dotcolor', color);
+
+    const summary = document.createElement('summary');
+    summary.innerHTML = `
+      <span class="dot"></span>
+      <span class="card-title">
+        <div class="name">${drug.name}</div>
+        <div class="cat">${catName(drug.cat)}</div>
+      </span>
+      <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    `;
+    details.appendChild(summary);
+
+    const body = document.createElement('div');
+    body.className = 'card-body';
+
+    const desc = document.createElement('p');
+    desc.className = 'desc';
+    desc.textContent = drug.desc;
+    body.appendChild(desc);
+
+    drug.presentations.forEach((pres,i)=>{
+      const row = document.createElement('div');
+      row.className = 'pres';
+      row.dataset.showIf = pres.showIf ? 'true' : 'false';
+
+      const label = document.createElement('div');
+      label.className = 'pres-label';
+      label.textContent = pres.label;
+      row.appendChild(label);
+
+      if(pres.formulaText){
+        const f = document.createElement('div');
+        f.className = 'pres-formula';
+        f.textContent = pres.formulaText;
+        row.appendChild(f);
+      }
+
+      const resultWrap = document.createElement('div');
+      resultWrap.className = 'pres-result' + (pres.maxCheck ? ' pres-max':'');
+      const valueSpan = document.createElement('span');
+      valueSpan.className = 'value';
+      valueSpan.dataset.role = 'value';
+      const freqSpan = document.createElement('span');
+      freqSpan.className = 'freq';
+      freqSpan.textContent = [pres.route, pres.freq].filter(Boolean).join(' · ');
+      resultWrap.appendChild(valueSpan);
+      resultWrap.appendChild(freqSpan);
+      row.appendChild(resultWrap);
+
+      if(pres.maxNote){
+        const mf = document.createElement('div');
+        mf.className = 'maxflag';
+        mf.textContent = pres.maxNote;
+        row.appendChild(mf);
+      }
+
+      row._pres = pres;
+      row._valueSpan = valueSpan;
+      row._resultWrap = resultWrap;
+      body.appendChild(row);
+    });
+
+    const rxToggle = document.createElement('button');
+    rxToggle.type = 'button';
+    rxToggle.className = 'rx-toggle';
+    rxToggle.textContent = 'Ver ejemplo de prescripción';
+    const rxBox = document.createElement('div');
+    rxBox.className = 'rx-box';
+    const rxTextarea = document.createElement('textarea');
+    rxTextarea.readOnly = true;
+    rxBox.appendChild(rxTextarea);
+    const rxActions = document.createElement('div');
+    rxActions.className = 'rx-actions';
+    const rxCopy = document.createElement('button');
+    rxCopy.type = 'button';
+    rxCopy.textContent = 'Copiar';
+    rxCopy.addEventListener('click', async ()=>{
+      try{
+        await navigator.clipboard.writeText(rxTextarea.value);
+        rxCopy.textContent = 'Copiado';
+        setTimeout(()=>{rxCopy.textContent='Copiar';}, 1400);
+      }catch(e){
+        rxTextarea.focus();
+        rxTextarea.select();
+      }
+    });
+    rxActions.appendChild(rxCopy);
+    rxBox.appendChild(rxActions);
+
+    rxToggle.addEventListener('click', ()=>{
+      const isOpen = rxBox.dataset.open === 'true';
+      rxBox.dataset.open = isOpen? 'false':'true';
+      if(!isOpen){
+        const w = parseFloat(pesoInput.value) || 0;
+        rxTextarea.value = buildExample(drug, w);
+      }
+    });
+    body.appendChild(rxToggle);
+    body.appendChild(rxBox);
+
+    details._rxTextarea = rxTextarea;
+    details._rxBox = rxBox;
+    details._drug = drug;
+
+    details.appendChild(body);
+    listEl.appendChild(details);
+  });
+
+  updateValues();
+}
+
+function buildChipsState(){
+  Array.from(catsEl.children).forEach((chip,i)=>{
+    if(i===0){ chip.dataset.active = activeCat==='all'?'true':'false'; }
+    else {
+      const c = CATS[i-1];
+      chip.dataset.active = activeCat===c.id ? 'true':'false';
+    }
+  });
+}
+
+function updateValues(){
+  const w = parseFloat(pesoInput.value);
+  const hasWeight = !isNaN(w) && w>0;
+  Array.from(listEl.children).forEach(details=>{
+    Array.from(details.querySelectorAll('.pres')).forEach(row=>{
+      const pres = row._pres;
+      const showIf = pres.showIf;
+      row.style.display = (showIf && hasWeight && !showIf(w)) ? 'none' : '';
+      if(!pres.calc){
+        row._valueSpan.textContent = '';
+        return;
+      }
+      if(!hasWeight){
+        row._valueSpan.textContent = '—';
+        row._resultWrap.classList.remove('exceeded');
+        return;
+      }
+      const val = pres.calc(w);
+      row._valueSpan.textContent = `${val} ${pres.unit||''}`.trim();
+      if(pres.maxCheck){
+        row._resultWrap.classList.toggle('exceeded', pres.maxCheck(w));
+      }
+    });
+    if(details._rxBox.dataset.open==='true'){
+      details._rxTextarea.value = buildExample(details._drug, hasWeight? w:0);
+    }
+  });
+}
+
+pesoInput.addEventListener('input', updateValues);
+buscarInput.addEventListener('input', (e)=>{ searchTerm = e.target.value; renderList(); });
+
+buildCatChips();
+renderList();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
